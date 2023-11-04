@@ -1,0 +1,8 @@
+Profiling Insights: 
+- 40% of our CPU execution time is spent executing the matrix multiplication as part of our update_with_observations function
+- We spend around 12 ms inside the loop executing the mulplication
+
+
+
+
+

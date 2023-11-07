@@ -69,7 +69,7 @@ Particle* predict_particles(Particle* particles, float* control){
     float r_mat[2][2]; 
     random_device rd; 
     mt19937 gen(rd()); 
-    uniform_real_distribution<float> distribution(0, 1.0); 
+    uniform_real_distribution<float> distribution(-1.0, 1.0); 
     uint8_t i, j, k;
 
     for (i = 0; i < NUM_PARTICLES; i ++){ 
@@ -333,7 +333,7 @@ Particle* resampling(Particle* particles){
     float* resample_id= new float[NUM_PARTICLES];
     random_device rd; 
     mt19937 gen(rd()); 
-    uniform_real_distribution<float> distribution(0, 1.0); 
+    uniform_real_distribution<float> distribution(-1.0, 1.0); 
     uint8_t indices[NUM_PARTICLES]; 
     Particle tmp_particles[NUM_PARTICLES];
 
@@ -629,7 +629,7 @@ float pi_2_pi(float value){
 }
 
 void calc_input(float time, float* u){
-    if(time <= 3.0){
+    if(time <= 2.98){
         u[0] = 0.0; 
         u[1] = 0.0;
     }
@@ -714,6 +714,7 @@ float** observation(float* xTrue, float* xd, float* u, float** rfid, uint8_t num
     return z; 
 }
 
+
 int main()
 {
     cout << "We starting FastSLAM execution now!" << endl; 
@@ -743,6 +744,7 @@ int main()
     num_landmarks = 8; 
 
     float* xEst = new float[3];
+    float* x_state = new float[3];
     float* xTrue = new float[3];
     float* xDR = new float[3];
 
@@ -750,8 +752,8 @@ int main()
     float* hxTrue = xTrue; 
     float* hxDR = xDR; 
     float time = 0;
-    float* u = new float(2); 
-    float* ud = new float(2); 
+    float* u = new float[2]; 
+    float* ud = new float[2]; 
     float** z; 
     int num_columns; 
 
@@ -760,33 +762,69 @@ int main()
     for (int i = 0; i < NUM_PARTICLES; i++){
         particles[i] = Particle(num_landmarks);
     }
-    while(150>= time){
-        //cout << "=============================================>>>>>>>>>>>>>>>>>>>>>>" << endl;             
+
+    hxEst = xEst; 
+    hxDR = xDR; 
+    hxTrue = xTrue;
+
+    // create file to store the particle data 
+    ofstream outputFile("particleData.csv");
+    ofstream outputFile2("historyData.csv");
+    ofstream outputFile3("Landmark_coords.csv");
+
+    // making the format for the file
+    outputFile << "Time" << "," << "Particle" << "," << "Particle x" << "," << "Particle y" << "," << "Landmark 1 x" << "," << "Landmark 1 y" << "," << "Landmark 2 x" << "," << "Landmark 2 y" << "," << "Landmark 3 x" << "," << "Landmark 3 y" << "," << "Landmark 4 x" << "," << "Landmark 4 y"<< "," << "Landmark 5 x" << "," << "Landmark 5 y" << "," << "Landmark 6 x" << "," << "Landmark 6 y" << "," << "Landmark 7 x" << "," << "Landmark 7 y" << "," << "Landmark 8 x" << "," << "Landmark 8 y" << endl;   
+    outputFile2 << "Time" << "," << "hxTrue x" << "," << "hxTrue y" << "," << "hxDr x" << "," << "hxDR y" << "," << "hxEst x" << "," << "hxEst y" << endl;
+    outputFile3 << "Landmark x" << "," << "Landmark y" << endl;
+    
+    for(int i = 0; i < num_landmarks; i++){
+        for (int j = 0; j < 2; j++){
+            outputFile3 << RFID[i][j] << ",";
+        }
+        outputFile3 << endl;
+    }
+
+
+
+    while(SIM_TICK>= time){
         time += TICK; 
         
-        // cout << "TIME: " << time << endl;
         calc_input(time, u);
-        // cout << "U vector" << endl;
-        // cout << u[0] << endl;
-        // cout << u[1] << endl; 
         z = observation(xTrue, xDR, u, RFID, num_landmarks, ud, num_columns); 
 
         particles = fast_slam1(particles, ud, z, num_columns); 
 
         calc_final_state(particles, xEst);      
 
-        // cout << "Particle Landmarks: " << endl; 
-        // for (int i = 0; i < NUM_PARTICLES; i++){
-        //     cout << "Particle: " << i << endl; 
-        //     for (int j = 0; j < num_landmarks; j++){
-        //         for (int k = 0; k < 2; k++){
-        //             cout << particles[i].lm[j][k] << " "; 
-        //         }
-        //         cout << endl; 
-        //     }
-        // }
-        cout << time << endl; 
+        for(int i = 0; i < STATE_SIZE; i++){
+            x_state[i] = xEst[i];
+        }
+
+        // populates the text file holding all the particles values through all the time steps 
+        if(outputFile.is_open()){
+            int i = 0;
+            for(i = 0; i < NUM_PARTICLES; i++){
+                outputFile << time << "," << i << "," << particles[i].x << "," << particles[i].y; 
+                for (int j = 0; j < 8; j++){
+                    for (int k = 0; k < 2; k++){
+                        outputFile << "," << particles[i].lm[j][k]; 
+                    }
+                }
+                outputFile << endl; 
+            }
+        }
+
+        if(outputFile2.is_open()){
+            outputFile2 << time << "," << xTrue[0] << "," << xTrue[1] << "," << xDR[0] << "," << xDR[1] << "," << xEst[0] << "," << xEst[1] << endl; 
+        }
+
     }
+
+
+    outputFile.close();
+    outputFile2.close();
+    outputFile3.close(); 
+
     cout << "made that shit" << endl; 
     return 1; 
 }

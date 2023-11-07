@@ -12,7 +12,7 @@
 #define DIST_MAL 2.0
 #define STATE_SIZE 3
 #define LM_SIZE 2
-#define NUM_PARTICLES 10
+#define NUM_PARTICLES 25
 #define N_RESAMPLE NUM_PARTICLES/1.5
 #define OFFSET_YAW_RATE_NOISE 0.01
 

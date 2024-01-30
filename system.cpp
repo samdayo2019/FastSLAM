@@ -14,104 +14,44 @@
 using namespace std;
 
 void inverse(float** matrix, int n){
-    float** lower = new float*[n]; 
-    float** upper = new float*[n];
-    float** trans = new float*[n]; 
+    float temp_val; 
 
-    for(int i = 0; i < n; i++){
-        lower[i] = new float[n];
-        upper[i] = new float[n];
-        trans[i] = new float[n];
-
-        for(int j = 0; j < n; j++){
-            lower[i][j] = 0; 
-            upper[i][j] = 0;
-            trans[i][j] = 0;
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j <2 * n; j++){
+            if(j == (i + n))
+                matrix[i][j] = 1;
         }
     }
 
-    // conduct LU decomposition producing L^-1 and U^T
-    for(int i = 0; i < n; i++){
-        for(int k = i; k < n; k++){
-            float sum = 0; 
-            for(int j = 0; j < i; j++){
-                sum+= (lower[i][j]*upper[k][j]);
-            }
-            upper[k][i] = matrix[i][k] - sum; 
-        }
-
-        for(int k = i; k < n; k++){
-            if(i == k)lower[i][i] = 1;
-            else{
-                int sum = 0;
-                for(int j = 0; j < i; j++){
-                    sum+= lower[k][j] * upper[i][j];
-                }
-                lower[k][i] = (matrix[k][i] - sum) / upper[i][i];
-            }
+    // perform row swapping
+    for (int i = n - 1; i > 0; i--){
+        if(matrix[i - 1][0] < matrix[i][0]){
+            float* temp_val = matrix[i];
+            matrix[i] = matrix[i - 1];
+            matrix[i - 1] = temp_val;
         }
     }
 
-    for(int i = 0; i < n; i++){
-        for(int k = i + n - 1; k > i; k--){
-            if(k < n) lower[k][i] = (k - i == 2) ? (lower[k - 1][i]*lower[k][i + 1] - lower[k][i]) : -lower[k][i];
-        }
-    }
-    
-    //obtain U^-1
-    transform_lower(upper, trans, n); 
-
-    //calculate A^-1 = U^-1 * L^-1
-    mult_mat(trans, lower, n);
-
-    for (int i = 0; i< n; i++){
+    //replace row by sum of itself and constant multiple of another row
+    for (int i = 0; i < n; i++){
         for (int j = 0; j < n; j++){
-            matrix[i][j] = lower[i][j];
+            if(j != i){
+                temp_val = matrix[j][i] / matrix[i][i];
+                for (int k = 0; k < 2 * n; k++){
+                    matrix[j][k] -= matrix[i][k] * temp_val;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < n; i++){
+        temp_val = matrix[i][i]; 
+        for (int j = 0; j < 2 * n; j++){
+            matrix[i][j] = matrix[i][j] / temp_val;
         }
     }
 
     return;
-}
-
-void transform_lower(float** lower, float**trans, int n){
-    for(int i = 0; i < n; i++){
-        trans[i][i] = 1/lower[i][i];
-        for (int j = i + 1; j < n; j++){
-            trans[i][j] = (j - i == 1) ? -(lower[j][i]/(lower[j - 1][i]*lower[j][i+1])) : (lower[j - 1][i]*lower[j][i + 1] - lower[j - 1][i + 1]*lower[j][i])/diag(lower, n); 
-        }
-    }
-
-    return; 
-}
-
-float diag(float** lower, int n){
-    float prod  = 1; 
-    for (int i = 0; i < n; i++){
-        prod*=lower[i][i];
-    }
-    return prod; 
-}
-
-
-void mult_mat(float** matrix1, float** matrix2, int n){
-    float inter[n][n]; 
-    uint8_t i = 0;
-    uint8_t j = 0;
-    uint8_t k = 0;
-    for (i = 0; i < n; i++){
-        for (j = 0; j < n; j++){
-            inter[i][j] = matrix2[i][j];
-        }
-    }
-
-    for (i = 0; i < n; i++){
-        for (j = 0; j < n; j++){
-            matrix2[i][j] = 0;
-            for (k = 0; k < n; k++){
-                matrix2[i][j] += matrix1[i][k]*inter[k][j];
-            }
-        }
-    }
 }
 
 int main(){
